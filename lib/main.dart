@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'Screens/home_page.dart';
 
@@ -13,11 +12,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'Tasks',
       theme: ThemeData(
-        textTheme: GoogleFonts.nunitoSansTextTheme(
-          Theme.of(context).textTheme,
-        ),
-      ),
+          canvasColor: Colors.transparent, accentColor: Colors.blueAccent),
       home: HomePage(),
     );
   }
