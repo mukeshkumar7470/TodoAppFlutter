@@ -37,6 +37,9 @@ dependencies:
 
   # state management
   shared_preferences: ^2.0.8
+  localstorage: ^4.0.0+1
+  localstore: ^1.2.0
+  flutter_slidable: ^0.6.0
 
 
 dev_dependencies:

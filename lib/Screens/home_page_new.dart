@@ -1,125 +1,186 @@
 import 'package:flutter/material.dart';
-import 'package:todo_app_flutter/utils/my_shared_preferences.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:localstore/localstore.dart';
+import 'package:todo_app_flutter/Screens/todo_list_page.dart';
+import 'package:todo_app_flutter/widgets/list_widget.dart';
 import 'package:todo_app_flutter/widgets/round_conner_bottom_sheet.dart';
 
-class HomePageMain extends StatefulWidget {
+import 'add_items_page.dart';
+import 'do_list_page.dart';
+import 'done_list_page.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({Key? key}) : super(key: key);
+
   @override
-  State<StatefulWidget> createState() {
-    return HomeState();
-  }
+  _HomePageState createState() => _HomePageState();
 }
 
-class HomeState extends State<HomePageMain> {
-  String email = "";
-  bool _flag = false;
+class _HomePageState extends State<HomePage> {
+  List<TodoItem> _items = [];
+  final db = Localstore.instance;
 
-  HomeState() {
-    MySharedPreferences.instance
-        .getStringValue("email")
-        .then((value) => setState(() {
-      email = value;
-      
-      print("fsffsdfss-----"+email);
+  @override
+  void initState() {
+    super.initState();
+    _getItems().then((value) {
+      setState(() {
+        _items = value;
+      });
+    });
+  }
+
+  void _addItem(String text) {
+    final id = db.collection('todos').doc().id;
+    db.collection('todos').doc(id).set({
+      'text': text,
+      'done': false,
+      'id': id,
+    });
+    _getItems();
+    setState(() {
+      _getItems().then((value) => _items = value);
+    });
+  }
+
+  void _removeItem(String id) {
+    db.collection('todos').doc(id).delete();
+    setState(() {
+      _getItems().then((value) => _items = value);
+    });
+  }
+  void _editItem(String id) {
+    db.collection('todos').doc(id).get();
+    setState(() {
+      _getItems().then((value) => _items = value);
+    });
+  }
+
+  Future<List<TodoItem>> _getItems() async {
+    final data = await db.collection('todos').get();
+    final List<TodoItem> list = <TodoItem>[];
+    data?.forEach((key, value) {
+      list.add(TodoItem(value['text'], value['done'], value['id']));
+    });
+    return list;
+  }
+
+  Future<void> showRemoveConfirmationDialog(String id) async {
+    return await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Task'),
+          content: const Text('Do you want to remove this task?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                _removeItem(id);
+                Navigator.of(context).pop();
+              },
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _navigateToAddTask(BuildContext context) async {
+    final result =
+    await Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return const AddItemPage();
     }));
+
+    if (result != null) {
+      _addItem(result.toString());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-        data: Theme.of(context).copyWith(
-          canvasColor: Colors.white,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const TabBar(
+            indicatorColor: Color(0xffF15C22),
+            unselectedLabelColor: Colors.black45,
+            labelColor: Color(0xffF15C22),
+            tabs: [
+              Tab(text: 'Tasks'),
+              Tab(text: 'Do'),
+              Tab(text: 'Done'),
+            ],
+          ),
         ),
-        child: Scaffold(
+        body: TabBarView(
+          physics: NeverScrollableScrollPhysics(),
+          children: [
+            TodoListPage(
+              items: _items,
+              onRemove: (id) {
+                showRemoveConfirmationDialog(id);
+              },
+            ),
+            DoListPage(
+              items: _items,
+              onRemove: (id) {
+                showRemoveConfirmationDialog(id);
+              },
+            ),
+            DoneListPage(
+              items: _items,
+              onRemove: (id) {
+                showRemoveConfirmationDialog(id);
+              },
+            ),
+          ],
+        ),
+
+        floatingActionButtonLocation:
+        FloatingActionButtonLocation.centerDocked,
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            // ScaffoldMessenger.of(context).showSnackBar(_snackBar1);
+            // createSnackBar("Welcome back coder");
+            // showInsertTaskDialog();
+            // showInsertBottomSheet();
+            _navigateToAddTask(context);
+          },
           backgroundColor: Colors.white,
-          floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerDocked,
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              // ScaffoldMessenger.of(context).showSnackBar(_snackBar1);
-              // createSnackBar("Welcome back coder");
-              // showInsertTaskDialog();
-              showInsertBottomSheet();
-            },
-            backgroundColor: Colors.white,
-            child: const Icon(
-              Icons.add,
-              color: Colors.blueAccent,
-              size: 36,
-            ),
-            //const Icon(Icons.add),
-            // label: const Text('Add a new task')
+          child: const Icon(
+            Icons.add,
+            color: Colors.blueAccent,
+            size: 36,
           ),
+          //const Icon(Icons.add),
+          // label: const Text('Add a new task')
+        ),
 
-          /*floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              // Add your onPressed code here!
-            },
-            child: const Icon(Icons.navigation),
-            backgroundColor: Colors.green,
-          ),*/
-
-
-          bottomNavigationBar: BottomAppBar(
-            elevation: 16.0,
-            child: Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: showMenu,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: showMore,
-                ),
-              ],
-            ),
-          ),
-          body: RefreshIndicator(
-              child: ListView(
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.only(
-                        top: 24.0, bottom: 24.0, right: 24.0, left: 24.0),
-                    child: const Text(
-                      'My Tasks',
-                      style: TextStyle(color: Colors.black, fontSize: 28.0),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.radio_button_unchecked),
-                    title: Text(_flag ? '1. '+email : 'Hello', style: TextStyle(
-                      color: _flag ? Colors.black : Colors.red,
-                    ),),
-                  )
-                ],
+        bottomNavigationBar: BottomAppBar(
+          elevation: 16.0,
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: showMenu,
               ),
-              onRefresh: onRefresh),
-        )
-    );
-  }
-
-  /*final _snackBar1 = SnackBar(
-    content: Text('Welcome to My Task'),
-  );
-*/
-  void createSnackBar(String message) {
-    final snackBar = SnackBar(
-        content: Text(message, style: const TextStyle(
-          color: Colors.black,
+              IconButton(
+                icon: const Icon(Icons.more_vert),
+                onPressed: showMore,
+              ),
+            ],
+          ),
         ),
-        ),
-        backgroundColor: Colors.green
+      ),
     );
-    // Find the Scaffold in the Widget tree and use it to show a SnackBar!
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  }
-
-  Future onRefresh() async {
-    await Future.delayed(Duration(seconds: 2));
-    return;
   }
 
   showMenu() {
@@ -333,126 +394,5 @@ class HomeState extends State<HomePageMain> {
             ],
           ));
         });
-  }
-
-  void showInsertTaskDialog() {
-    String teamName = '';
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Enter current team'),
-          content: Row(
-            children: [
-              Expanded(
-                  child: TextField(
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                        labelText: 'Team Name', hintText: 'eg. Juventus F.C.'),
-                    onChanged: (value) {
-                      teamName = value;
-                    },
-                  ))
-            ],
-          ),
-          actions: [
-            TextButton(
-              child: Text('Ok'),
-              onPressed: () {
-                Navigator.of(context).pop(teamName);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void showInsertBottomSheet() {
-    TextEditingController controllerTask = TextEditingController();
-    showModalBottomSheet<void>(
-      // isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(25.0))),
-          backgroundColor: Colors.white,
-
-      context: context,
-      builder: (BuildContext context) {
-        return Form(
-          child: SingleChildScrollView(
-            child: AnimatedPadding(
-              padding: MediaQuery.of(context).viewInsets,
-              duration: const Duration(milliseconds: 50),
-              curve: Curves.decelerate,
-              child: Column(
-                children: <Widget>[
-
-                  const SizedBox(
-                    width: 100,
-                    height: 16,
-                  ),
-
-                  Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                      child: const Text(
-                        'Add Task',
-                        style: TextStyle(
-                          fontSize: 24,
-                          color: Colors.black,
-                        ),
-                      ),
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: TextFormField(
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'New Task'
-                      ),
-                      validator: (value) {
-                        if (value!.trim().isEmpty) {
-                          return "Enter Task";
-                        }
-                      },
-                      controller: controllerTask,
-                    ),
-                  ),
-
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    child: ElevatedButton(
-                      onPressed: () {
-                          var getEmail = controllerTask.text;
-                          print("hello: --- "+controllerTask.text);
-
-                          MySharedPreferences.instance
-                              .setStringValue("email", getEmail);
-
-                          setState(() => _flag = !_flag);
-                          /*setState(() {
-                            MySharedPreferences.instance
-                                .setStringValue("email", getEmail);
-                          });*/
-
-                          Navigator.pop(context);
-                      },
-                      child: const Text('Save'),
-                    )
-                  ),
-
-                  const SizedBox(
-                    width: 100,
-                    height: 16,
-                  ),
-
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 }

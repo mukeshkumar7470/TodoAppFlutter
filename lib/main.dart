@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
-import 'Screens/home_page.dart';
+import 'Screens/custom_tab_bar.dart';
+import 'Screens/home_page_new.dart';
 
 
 void main() {
@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Tasks',
       theme: ThemeData(
-          canvasColor: Colors.transparent, accentColor: Colors.blueAccent),
+          canvasColor: Colors.white, accentColor: Colors.blueAccent),
       home: HomePage(),
     );
   }
